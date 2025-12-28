@@ -3,4 +3,7 @@
 vault/
 __pycache__/
 *.pyc
-
+.pytest_cache/
+apps/api/.venv/
+apps/web/node_modules/
+apps/web/dist/
