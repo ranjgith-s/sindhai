@@ -18,8 +18,20 @@ export function GraphPanel({
       container: elRef.current,
       elements: [],
       style: [
-        { selector: "node", style: { label: "data(label)", "background-color": "#2563eb", color: "#111827" } },
-        { selector: "edge", style: { width: 2, "line-color": "#9ca3af", "target-arrow-shape": "triangle" } },
+        {
+          selector: "node",
+          style: {
+            label: "data(label)",
+            "background-color": "#60a5fa",
+            color: "#0b1020",
+            "text-outline-color": "#0b1020",
+            "text-outline-width": 2,
+            "font-size": 10,
+            "text-valign": "center",
+            "text-halign": "center",
+          },
+        },
+        { selector: "edge", style: { width: 2, "line-color": "#94a3b8", "target-arrow-shape": "triangle" } },
       ],
       layout: { name: "cose", animate: false },
     });
@@ -52,6 +64,5 @@ export function GraphPanel({
     cy.layout({ name: "cose", animate: false }).run();
   }, [graph]);
 
-  return <div className="graph" ref={elRef} />;
+  return <div className="h-64 w-full rounded-xl border border-white/10 bg-white/5" ref={elRef} />;
 }
-

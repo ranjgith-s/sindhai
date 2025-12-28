@@ -1,5 +1,7 @@
 services:
   web:
+    image: sindhai/web:dev
+    container_name: sindhai-web
     build:
       context: ../apps/web
     depends_on:
@@ -8,6 +10,8 @@ services:
       - "3000:80"
 
   api:
+    image: sindhai/api:dev
+    container_name: sindhai-api
     build:
       context: ../apps/api
     environment:
@@ -27,6 +31,7 @@ services:
 
   neo4j:
     image: neo4j:5-community
+    container_name: sindhai-neo4j
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-password}
     volumes:
@@ -37,6 +42,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
+    container_name: sindhai-qdrant
     volumes:
       - qdrant_storage:/qdrant/storage
     ports:
@@ -45,4 +51,3 @@ services:
 volumes:
   neo4j_data:
   qdrant_storage:
-

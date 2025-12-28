@@ -8,10 +8,15 @@ Planning repo for an AI-enabled, Obsidian-like knowledge graph web app (Markdown
 
 ## Run (Docker)
 
-- Copy env: `cp .env.example .env`
+- Copy env (optional): `cp .env.example .env`
 - Start: `docker compose -f infra/docker-compose.yml up --build`
 - Open:
   - Web: `http://localhost:3000`
   - API health: `http://localhost:3000/api/health`
   - API notes: `http://localhost:3000/api/notes` (reads/writes to `vault/`)
   - Neo4j browser: `http://localhost:7474`
+
+Notes:
+- The Markdown vault is bind-mounted from `./vault` into the API container at `VAULT_DIR=/data/vault`.
+- Neo4j and Qdrant data persist in Docker volumes declared in `infra/docker-compose.yml`.
+- To stop: `docker compose -f infra/docker-compose.yml down`

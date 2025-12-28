@@ -50,10 +50,10 @@ export async function listNotes(q?: string): Promise<NoteSummary[]> {
   return data.items;
 }
 
-export async function createNote(title: string): Promise<NoteDetail> {
+export async function createNote(payload: { title: string; path?: string }): Promise<NoteDetail> {
   return api<NoteDetail>("/notes", {
     method: "POST",
-    body: JSON.stringify({ title, content_markdown: "" }),
+    body: JSON.stringify({ title: payload.title, path: payload.path, content_markdown: "" }),
   });
 }
 
@@ -61,10 +61,13 @@ export async function getNote(id: string): Promise<NoteGet> {
   return api<NoteGet>(`/notes/${encodeURIComponent(id)}`);
 }
 
-export async function updateNote(id: string, content_markdown: string): Promise<NoteDetail> {
+export async function updateNote(
+  id: string,
+  payload: { content_markdown?: string; path?: string; frontmatter?: Record<string, unknown> },
+): Promise<NoteDetail> {
   return api<NoteDetail>(`/notes/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify({ content_markdown }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -76,4 +79,3 @@ export async function getLocalGraph(noteId: string): Promise<LocalGraph> {
   const params = new URLSearchParams({ noteId });
   return api<LocalGraph>(`/graph/local?${params.toString()}`);
 }
-
