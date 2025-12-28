@@ -20,6 +20,10 @@ This folder captures the initial architecture and build plan for an AI-enabled, 
 - `docs/architecture/08-scalability-offline.md`
 - `docs/architecture/09-containerization.md`
 
+## Specs (implementation-ready)
+
+- `docs/specs/README.md`
+
 ## Decisions (ADRs)
 
 - `docs/decisions/README.md`
