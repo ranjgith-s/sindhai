@@ -43,8 +43,18 @@ class QdrantIndex:
         if not self._client:
             return
         self.ensure_collection()
+        payload = {
+            "note_id": note.id,
+            "title": note.title,
+            "path": note.path,
+            "updated_at": note.updated_at,
+            "content_hash": note.content_hash,
+            "snippet": note.snippet,
+        }
         existing = self._client.retrieve(collection_name=self.collection, ids=[note.id])
         if existing and existing[0].payload and existing[0].payload.get("content_hash") == note.content_hash:
+            # Metadata can change (rename/move) without a content_hash change; update payload without re-embedding.
+            self._client.overwrite_payload(collection_name=self.collection, payload=payload, points=[note.id])
             return
 
         vec = embed_text(note.text, dim=self.dim)
@@ -54,14 +64,7 @@ class QdrantIndex:
                 PointStruct(
                     id=note.id,
                     vector=vec,
-                    payload={
-                        "note_id": note.id,
-                        "title": note.title,
-                        "path": note.path,
-                        "updated_at": note.updated_at,
-                        "content_hash": note.content_hash,
-                        "snippet": note.snippet,
-                    },
+                    payload=payload,
                 )
             ],
         )

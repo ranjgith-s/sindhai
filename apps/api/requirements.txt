@@ -3,4 +3,5 @@ uvicorn[standard]==0.34.0
 neo4j==5.26.0
 qdrant-client==1.12.1
 PyYAML==6.0.2
+httpx==0.28.1
 pytest==8.3.4

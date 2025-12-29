@@ -5,9 +5,13 @@ import type { LocalGraph } from "./api";
 export function GraphPanel({
   graph,
   onOpenNote,
+  className,
+  heightClassName = "h-64",
 }: {
   graph: LocalGraph | null;
   onOpenNote: (id: string) => void;
+  className?: string;
+  heightClassName?: string;
 }) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
@@ -31,6 +35,14 @@ export function GraphPanel({
             "text-halign": "center",
           },
         },
+        {
+          selector: "node.highlight",
+          style: { "background-color": "#fbbf24" },
+        },
+        {
+          selector: "edge.highlight",
+          style: { "line-color": "#fbbf24", "target-arrow-color": "#fbbf24", width: 3 },
+        },
         { selector: "edge", style: { width: 2, "line-color": "#94a3b8", "target-arrow-shape": "triangle" } },
       ],
       layout: { name: "cose", animate: false },
@@ -39,6 +51,17 @@ export function GraphPanel({
     cyRef.current.on("tap", "node", (evt) => {
       const id = evt.target.id();
       if (id) onOpenNote(id);
+    });
+
+    cyRef.current.on("mouseover", "node", (evt) => {
+      const node = evt.target;
+      cyRef.current?.elements().removeClass("highlight");
+      node.addClass("highlight");
+      node.connectedEdges().addClass("highlight");
+      node.connectedNodes().addClass("highlight");
+    });
+    cyRef.current.on("mouseout", "node", () => {
+      cyRef.current?.elements().removeClass("highlight");
     });
 
     return () => {
@@ -64,5 +87,10 @@ export function GraphPanel({
     cy.layout({ name: "cose", animate: false }).run();
   }, [graph]);
 
-  return <div className="h-64 w-full rounded-xl border border-white/10 bg-white/5" ref={elRef} />;
+  return (
+    <div
+      className={[heightClassName, "w-full rounded-xl border border-white/10 bg-white/5", className ?? ""].join(" ")}
+      ref={elRef}
+    />
+  );
 }

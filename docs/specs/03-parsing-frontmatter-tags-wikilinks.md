@@ -7,6 +7,9 @@ This spec defines deterministic parsing rules used by the backend indexers and b
 - Parsing must be deterministic and testable.
 - For MVP, parsing may ignore Markdown semantics beyond what’s required, but **must** follow the edge-case rules below consistently.
 - Parsing operates on the raw Markdown source.
+- Current implementations:
+  - Backend: `apps/api/sindhai_api/parsing.py` (codepoint offsets)
+  - Frontend renderer: `apps/web/src/markdown.ts`
 
 ## YAML frontmatter
 
@@ -106,4 +109,3 @@ If multiple matches:
 
 If no matches:
 - Mark as unresolved (UI may offer “create note”).
-

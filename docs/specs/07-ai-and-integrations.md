@@ -15,6 +15,10 @@ Backend must isolate providers behind a minimal interface:
 
 The rest of the application must not depend on provider-specific SDKs or response shapes.
 
+MVP implementation:
+- Providers live under `apps/api/sindhai_api/ai/`.
+- External providers use a small OpenAI-compatible HTTP client (no vendor SDKs).
+
 ## Privacy rules (hard requirements)
 
 - Never send the full vault externally.
@@ -24,10 +28,11 @@ The rest of the application must not depend on provider-specific SDKs or respons
   - retrieved snippets *from local indexes* bounded by size limits and only when the user initiates an external action
 - UI must clearly indicate when content leaves the system.
 - Backend enforces an `AI_EXTERNAL_ENABLED=false` kill switch that blocks all external provider calls.
+- Backend enforces a request-size bound via `AI_EXTERNAL_MAX_CHARS` (default: `20000`).
 
 ## Embeddings (MVP)
 
-- Default model: a local SentenceTransformers embedding model.
+- Default model: a local deterministic embedding (see `docs/decisions/0003-embedding-baseline-hashed-bow.md`).
 - Embed on note change when `content_hash` changes.
 - Store vectors in the configured vector store along with metadata.
 
@@ -53,14 +58,21 @@ Requirements:
 - Browser never receives provider keys.
 - Responses are optionally “saveable” as Markdown notes with prompt/response metadata.
 
+MVP API:
+- `POST /integrations/openai/chat` returns `{ provider, content, save_markdown }`.
+- Configuration via `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`.
+
 ### Perplexity (grounded)
 
 Requirements:
 - Use OpenAI-compatible chat completion endpoint if available.
 - Persist citations/URLs in a Markdown “References” section on save.
 
+MVP API:
+- `POST /integrations/perplexity/ask` returns `{ provider, answer_markdown, citations[], save_markdown }`.
+- Configuration via `PERPLEXITY_BASE_URL`, `PERPLEXITY_API_KEY`, `PERPLEXITY_MODEL`.
+
 ## Manual import (fallback)
 
 - Provide an import UI that accepts pasted text and optional citations/URLs.
 - Saves as a Markdown note tagged `imported` (or similar) and includes import metadata in frontmatter.
-

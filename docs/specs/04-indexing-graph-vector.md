@@ -8,6 +8,8 @@ This spec defines how the system derives indexes from vault note content.
 - Indexing runs only when `content_hash` changes (except for deletes).
 - Provide a “reindex all” admin operation (MVP: manual API call).
 
+MVP API: `POST /admin/reindex` (alias: `POST /admin/reindex-all`).
+
 ## Graph index
 
 ### Purpose
@@ -83,4 +85,3 @@ If enabled later:
 
 - Compute embedding only when `content_hash` changes.
 - If chunking mode changes, require a full reindex of embeddings.
-

@@ -34,33 +34,74 @@ class Neo4jGraph:
         with self._driver.session() as session:
             session.run("CREATE CONSTRAINT note_id IF NOT EXISTS FOR (n:Note) REQUIRE n.id IS UNIQUE")
 
-    def upsert_note_and_links(self, note: GraphNote, targets: list[GraphNote]) -> None:
+    def note_content_hash(self, note_id: str) -> str | None:
+        if not self._driver:
+            return None
+        with self._driver.session() as session:
+            res = session.run(
+                "MATCH (n:Note {id: $id}) RETURN n.content_hash AS content_hash",
+                id=note_id,
+            ).single()
+            if not res:
+                return None
+            return res.get("content_hash")
+
+    def upsert_note(self, note: GraphNote, *, parse_error: str | None, update_tags: bool) -> None:
         if not self._driver:
             return
         self.init_schema()
         with self._driver.session() as session:
-            session.execute_write(self._upsert_note_and_links_tx, note, targets)
+            session.execute_write(self._upsert_note_tx, note, parse_error, update_tags)
 
     @staticmethod
-    def _upsert_note_and_links_tx(tx, note: GraphNote, targets: list[GraphNote]) -> None:
-        tx.run(
-            """
-            MERGE (n:Note {id: $id})
-            SET n.title = $title,
-                n.path = $path,
-                n.updated_at = $updated_at,
-                n.tags = $tags,
-                n.content_hash = $content_hash
-            """,
-            id=note.id,
-            title=note.title,
-            path=note.path,
-            updated_at=note.updated_at,
-            tags=note.tags,
-            content_hash=note.content_hash,
-        )
+    def _upsert_note_tx(tx, note: GraphNote, parse_error: str | None, update_tags: bool) -> None:
+        if update_tags:
+            tx.run(
+                """
+                MERGE (n:Note {id: $id})
+                SET n.title = $title,
+                    n.path = $path,
+                    n.updated_at = $updated_at,
+                    n.tags = $tags,
+                    n.content_hash = $content_hash,
+                    n.parse_error = $parse_error
+                """,
+                id=note.id,
+                title=note.title,
+                path=note.path,
+                updated_at=note.updated_at,
+                tags=note.tags,
+                content_hash=note.content_hash,
+                parse_error=parse_error,
+            )
+        else:
+            tx.run(
+                """
+                MERGE (n:Note {id: $id})
+                SET n.title = $title,
+                    n.path = $path,
+                    n.updated_at = $updated_at,
+                    n.content_hash = $content_hash,
+                    n.parse_error = $parse_error
+                """,
+                id=note.id,
+                title=note.title,
+                path=note.path,
+                updated_at=note.updated_at,
+                content_hash=note.content_hash,
+                parse_error=parse_error,
+            )
 
-        tx.run("MATCH (n:Note {id: $id})-[r:LINKS_TO]->() DELETE r", id=note.id)
+    def replace_outgoing_links(self, note_id: str, targets: list[GraphNote]) -> None:
+        if not self._driver:
+            return
+        self.init_schema()
+        with self._driver.session() as session:
+            session.execute_write(self._replace_outgoing_links_tx, note_id, targets)
+
+    @staticmethod
+    def _replace_outgoing_links_tx(tx, note_id: str, targets: list[GraphNote]) -> None:
+        tx.run("MATCH (n:Note {id: $id})-[r:LINKS_TO]->() DELETE r", id=note_id)
 
         if not targets:
             return
@@ -95,9 +136,13 @@ class Neo4jGraph:
             MATCH (dst:Note {id: tid})
             MERGE (src)-[:LINKS_TO]->(dst)
             """,
-            src_id=note.id,
+            src_id=note_id,
             target_ids=[t.id for t in targets],
         )
+
+    def upsert_note_and_links(self, note: GraphNote, targets: list[GraphNote]) -> None:
+        self.upsert_note(note, parse_error=None, update_tags=True)
+        self.replace_outgoing_links(note.id, targets)
 
     def delete_note(self, note_id: str) -> None:
         if not self._driver:
@@ -151,4 +196,3 @@ class Neo4jGraph:
             edges.append({"source": i["id"], "target": n["id"], "type": "LINKS_TO"})
 
         return (list(nodes_by_id.values()), edges)
-

@@ -12,6 +12,10 @@ def rfc3339_from_timestamp(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def rfc3339_now() -> str:
+    return datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def normalize_newlines_for_hash(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -37,4 +41,3 @@ _SAFE_STEM_RE = re.compile(r"[^a-zA-Z0-9]+")
 def safe_filename_stem(title: str) -> str:
     cleaned = _SAFE_STEM_RE.sub("-", title.strip()).strip("-")
     return cleaned or "Untitled"
-

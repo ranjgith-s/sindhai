@@ -2,8 +2,10 @@ export type NoteSummary = {
   id: string;
   title: string;
   path: string;
+  created_at: string;
   updated_at: string;
   tags: string[];
+  aliases: string[];
 };
 
 export type RelatedNote = NoteSummary & { score: number; snippet: string };
@@ -15,6 +17,8 @@ export type NoteDetail = {
   content_markdown: string;
   frontmatter: Record<string, unknown>;
   tags: string[];
+  aliases: string[];
+  created_at: string;
   updated_at: string;
   content_hash: string;
   frontmatter_error?: string | null;
@@ -46,6 +50,15 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export async function listNotes(q?: string): Promise<NoteSummary[]> {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
+  // Back-compat: keep `q` optional; callers can pass `tag` using overload below.
+  const data = await api<{ items: NoteSummary[] }>(`/notes?${params.toString()}`);
+  return data.items;
+}
+
+export async function listNotesFiltered(opts: { q?: string; tag?: string } = {}): Promise<NoteSummary[]> {
+  const params = new URLSearchParams();
+  if (opts.q) params.set("q", opts.q);
+  if (opts.tag) params.set("tag", opts.tag);
   const data = await api<{ items: NoteSummary[] }>(`/notes?${params.toString()}`);
   return data.items;
 }
@@ -78,4 +91,22 @@ export async function deleteNote(id: string): Promise<void> {
 export async function getLocalGraph(noteId: string): Promise<LocalGraph> {
   const params = new URLSearchParams({ noteId });
   return api<LocalGraph>(`/graph/local?${params.toString()}`);
+}
+
+export async function aiSummarize(payload: {
+  noteId: string;
+  mode?: "local" | "external";
+  provider?: string | null;
+}): Promise<{ summary_markdown: string; provider: string }> {
+  return api("/ai/summarize", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function aiSuggestLinks(noteId: string, k = 5): Promise<{ items: { id: string; score: number }[] }> {
+  const params = new URLSearchParams({ noteId, k: String(k) });
+  return api(`/ai/suggest-links?${params.toString()}`);
+}
+
+export async function aiSuggestTags(noteId: string, k = 10): Promise<{ items: { tag: string; confidence: number }[] }> {
+  const params = new URLSearchParams({ noteId, k: String(k) });
+  return api(`/ai/suggest-tags?${params.toString()}`);
 }

@@ -79,9 +79,6 @@ class Indexer:
 
     def index_note(self, note_id: str) -> None:
         detail = self.vault.read_note_detail(note_id)
-        catalog = build_catalog(self.vault)
-        targets, _meta = resolve_wikilinks(note_id, self.vault, catalog)
-
         graph_note = GraphNote(
             id=detail.id,
             title=detail.title,
@@ -90,20 +87,33 @@ class Indexer:
             tags=detail.tags,
             content_hash=detail.content_hash,
         )
-        graph_targets: list[GraphNote] = []
-        for t in targets:
-            td = self.vault.read_note_detail(t.id)
-            graph_targets.append(
-                GraphNote(
-                    id=td.id,
-                    title=td.title,
-                    path=td.path,
-                    updated_at=td.updated_at,
-                    tags=td.tags,
-                    content_hash=td.content_hash,
+        parse_error = detail.frontmatter_error
+        prev_hash = self.graph.note_content_hash(note_id) if self.graph.enabled() else None
+        content_changed = prev_hash != detail.content_hash
+
+        # Always upsert the note node so metadata (path/title/updated_at) stays current.
+        # Only replace tags + outgoing links when content_hash changes and parsing is successful.
+        update_tags_and_links = content_changed and parse_error is None
+        self.graph.upsert_note(graph_note, parse_error=parse_error, update_tags=update_tags_and_links)
+
+        if update_tags_and_links:
+            catalog = build_catalog(self.vault)
+            targets, _meta = resolve_wikilinks(note_id, self.vault, catalog)
+
+            graph_targets: list[GraphNote] = []
+            for t in targets:
+                td = self.vault.read_note_detail(t.id)
+                graph_targets.append(
+                    GraphNote(
+                        id=td.id,
+                        title=td.title,
+                        path=td.path,
+                        updated_at=td.updated_at,
+                        tags=td.tags,
+                        content_hash=td.content_hash,
+                    )
                 )
-            )
-        self.graph.upsert_note_and_links(graph_note, graph_targets)
+            self.graph.replace_outgoing_links(note_id, graph_targets)
 
         snippet = detail.content_markdown[:280].replace("\n", " ").strip()
         vec_note = VectorNote(

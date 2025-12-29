@@ -31,6 +31,11 @@ Regardless of strategy:
 - API refers to notes by `id`.
 - `path` remains a first-class field and is required for file I/O.
 
+### MVP implementation choice
+
+- Use a sidecar index at `VAULT_DIR/.sindhai/notes.json` mapping `{path -> uuid}` (see `docs/decisions/0001-note-identity-sidecar-index.md`).
+- Store stable per-note metadata (currently `created_at`) in `VAULT_DIR/.sindhai/note_meta.json`, keyed by `{uuid -> {created_at}}`.
+
 ## Note fields (conceptual)
 
 - `id: string` (stable identifier; format TBD)
@@ -40,7 +45,7 @@ Regardless of strategy:
 - `frontmatter: object` (parsed YAML; raw also allowed for round-trip)
 - `tags: string[]` (normalized; union of frontmatter + inline tags)
 - `links_out: LinkOut[]` (derived)
-- `created_at: string (RFC3339)` (derived from filesystem or metadata store)
+- `created_at: string (RFC3339)` (derived from filesystem on first sight, then persisted in metadata store)
 - `updated_at: string (RFC3339)` (filesystem mtime or metadata store)
 - `content_hash: string` (stable hash of canonical markdown used for reindex decisions)
 
@@ -61,4 +66,3 @@ Future enhancement (optional): allow `# Heading 1` as title source.
 
 - Deleting a note removes its `.md` file from the vault.
 - The system must also remove/mark-stale its graph edges and vector entries.
-

@@ -67,8 +67,10 @@ class NoteSummary:
     id: str
     title: str
     path: str
+    created_at: str
     updated_at: str
     tags: list[str]
+    aliases: list[str]
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,7 @@ class NoteDetail:
     content_markdown: str
     frontmatter: dict
     tags: list[str]
+    created_at: str
     updated_at: str
     content_hash: str
     frontmatter_error: str | None
@@ -106,15 +109,15 @@ class NoteIdIndex:
         self.meta_dir.mkdir(parents=True, exist_ok=True)
         atomic_write_json(self.path, mapping)
 
-    def ensure_id_for_path(self, note_path: str) -> str:
+    def ensure_id_for_path(self, note_path: str) -> tuple[str, bool]:
         mapping = self._load_mapping()
         existing = mapping.get(note_path)
         if existing:
-            return existing
+            return (existing, False)
         new_id = str(uuid.uuid4())
         mapping[note_path] = new_id
         self._write_mapping(mapping)
-        return new_id
+        return (new_id, True)
 
     def delete_path(self, note_path: str) -> None:
         mapping = self._load_mapping()
@@ -139,10 +142,50 @@ class NoteIdIndex:
         self._write_mapping(mapping)
 
 
+class NoteMetaIndex:
+    def __init__(self, vault_dir: Path) -> None:
+        self.vault_dir = vault_dir
+        self.meta_dir = vault_dir / ".sindhai"
+        self.path = self.meta_dir / "note_meta.json"
+
+    def _load(self) -> dict[str, object]:
+        if not self.path.exists():
+            return {}
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def _write(self, data: dict[str, object]) -> None:
+        self.meta_dir.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(self.path, data)
+
+    def ensure_created_at(self, note_id: str, fallback_rfc3339: str) -> str:
+        data = self._load()
+        existing = data.get(note_id)
+        if isinstance(existing, str) and existing:
+            return existing
+        if isinstance(existing, dict):
+            created = existing.get("created_at")
+            if isinstance(created, str) and created:
+                return created
+        data[note_id] = {"created_at": fallback_rfc3339}
+        self._write(data)
+        return fallback_rfc3339
+
+    def delete(self, note_id: str) -> None:
+        data = self._load()
+        if note_id in data:
+            data.pop(note_id, None)
+            self._write(data)
+
+
 class Vault:
     def __init__(self, vault_dir: Path) -> None:
         self.vault_dir = vault_dir
         self.ids = NoteIdIndex(vault_dir)
+        self.meta = NoteMetaIndex(vault_dir)
 
     def _abs_path(self, note_path: str) -> Path:
         return (self.vault_dir / PurePosixPath(note_path)).resolve()
@@ -169,8 +212,13 @@ class Vault:
             raise FileNotFoundError(note_path)
         content = abs_path.read_text(encoding="utf-8")
         parsed: ParsedNote = parse_note(content)
-        note_id = self.ids.ensure_id_for_path(note_path)
-        updated_at = rfc3339_from_timestamp(abs_path.stat().st_mtime)
+        note_id, _created = self.ids.ensure_id_for_path(note_path)
+        st = abs_path.stat()
+        updated_at = rfc3339_from_timestamp(st.st_mtime)
+        created_ts = getattr(st, "st_birthtime", None)
+        if not isinstance(created_ts, (int, float)):
+            created_ts = st.st_mtime
+        created_at = self.meta.ensure_created_at(note_id, rfc3339_from_timestamp(float(created_ts)))
         content_hash = sha256_hex(normalize_newlines_for_hash(content))
         title = extract_title(parsed.frontmatter, note_path)
         aliases = extract_aliases(parsed.frontmatter)
@@ -181,6 +229,7 @@ class Vault:
             content_markdown=content,
             frontmatter=parsed.frontmatter,
             tags=parsed.tags,
+            created_at=created_at,
             updated_at=updated_at,
             content_hash=content_hash,
             frontmatter_error=parsed.frontmatter_error,
@@ -208,8 +257,10 @@ class Vault:
                     id=detail.id,
                     title=detail.title,
                     path=detail.path,
+                    created_at=detail.created_at,
                     updated_at=detail.updated_at,
                     tags=detail.tags,
+                    aliases=detail.aliases,
                 )
             )
         summaries.sort(key=lambda n: n.updated_at, reverse=True)
@@ -248,6 +299,7 @@ class Vault:
         if abs_path.exists():
             abs_path.unlink()
         self.ids.delete_path(note_path)
+        self.meta.delete(note_id)
         return note_path
 
     def rename_note(self, note_id: str, new_path: str) -> NoteDetail:
@@ -268,4 +320,3 @@ class Vault:
         old_abs.replace(new_abs)
         self.ids.rename_path(old_path, new_path_norm)
         return self.read_note_detail(note_id)
-

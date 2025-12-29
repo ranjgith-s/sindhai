@@ -18,8 +18,10 @@ The MVP uses a versionable REST API. All responses are JSON unless otherwise sta
   "id": "string",
   "title": "string",
   "path": "string",
+  "created_at": "2025-01-01T00:00:00Z",
   "updated_at": "2025-01-01T00:00:00Z",
-  "tags": ["string"]
+  "tags": ["string"],
+  "aliases": ["string"]
 }
 ```
 
@@ -33,8 +35,11 @@ The MVP uses a versionable REST API. All responses are JSON unless otherwise sta
   "content_markdown": "string",
   "frontmatter": {},
   "tags": ["string"],
+  "aliases": ["string"],
+  "created_at": "2025-01-01T00:00:00Z",
   "updated_at": "2025-01-01T00:00:00Z",
-  "content_hash": "string"
+  "content_hash": "string",
+  "frontmatter_error": "string|null"
 }
 ```
 
@@ -79,9 +84,9 @@ Fetch a note plus derived panels.
 Response:
 ```json
 {
-  "note": { "id": "string", "title": "string", "path": "string", "content_markdown": "string", "frontmatter": {}, "tags": ["string"], "updated_at": "2025-01-01T00:00:00Z", "content_hash": "string" },
-  "backlinks": [{ "id": "string", "title": "string", "path": "string", "updated_at": "2025-01-01T00:00:00Z", "tags": ["string"] }],
-  "related_notes": [{ "id": "string", "title": "string", "path": "string", "updated_at": "2025-01-01T00:00:00Z", "tags": ["string"], "score": 0.0 }]
+  "note": { "id": "string", "title": "string", "path": "string", "content_markdown": "string", "frontmatter": {}, "tags": ["string"], "aliases": ["string"], "created_at": "2025-01-01T00:00:00Z", "updated_at": "2025-01-01T00:00:00Z", "content_hash": "string", "frontmatter_error": "string|null" },
+  "backlinks": [{ "id": "string", "title": "string", "path": "string", "created_at": "2025-01-01T00:00:00Z", "updated_at": "2025-01-01T00:00:00Z", "tags": ["string"], "aliases": ["string"] }],
+  "related_notes": [{ "id": "string", "title": "string", "path": "string", "updated_at": "2025-01-01T00:00:00Z", "tags": ["string"], "aliases": ["string"], "score": 0.0, "snippet": "string" }]
 }
 ```
 
@@ -155,6 +160,10 @@ Response:
 { "summary_markdown": "string", "provider": "string" }
 ```
 
+MVP behavior:
+- `mode=local` returns a deterministic extractive summary from the note body (no external calls).
+- `mode=external` returns `403` unless `AI_EXTERNAL_ENABLED=true`, and is otherwise `501` until an external provider is implemented.
+
 ### `GET /ai/suggest-links?noteId=...&k=5`
 
 Response: `{ "items": [{ "id": "string", "score": 0.0 }] }`
@@ -183,4 +192,3 @@ Both endpoints must enforce the privacy rules in `docs/specs/07-ai-and-integrati
 - `409` conflict (path already exists; rename collisions)
 - `422` validation error (structured details)
 - `500` unexpected errors
-
