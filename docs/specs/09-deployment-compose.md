@@ -45,15 +45,18 @@ Required persisted data:
 - Vector store connection vars (one set depending on choice)
 - `AI_EXTERNAL_ENABLED=false` (default)
 - Optional provider keys: `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`
+- Optional direct-API auth: `API_AUTH_MODE=bearer`, `API_AUTH_TOKEN=...`
 
 ## Networking
 
 - Expose only `web` publicly.
 - Keep `api`, graph, and vector on the internal network.
 
+For local development (optional), use the dev override to publish service ports:
+- `docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --build`
+
 ## Operational requirements (MVP)
 
 - Backups:
   - Vault: host filesystem backup of the bind mount
   - Graph/vector: volume backups or export scripts (later)
-

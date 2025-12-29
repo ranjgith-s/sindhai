@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import logging
+import time
+import uuid
 from typing import Any, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from sindhai_api.config import load_settings
@@ -151,6 +156,63 @@ def create_app() -> FastAPI:
     vectors = QdrantIndex(settings.qdrant_url)
     indexer = Indexer(vault=vault, graph=graph, vectors=vectors)
 
+    logger = logging.getLogger("sindhai.api")
+
+    @app.middleware("http")
+    async def request_id_and_logging(request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        request.state.request_id = request_id
+        start = time.perf_counter()
+
+        if settings.api_auth_mode == "bearer":
+            if request.url.path != "/health":
+                token = settings.api_auth_token or ""
+                auth = request.headers.get("authorization") or ""
+                if not token or auth != f"Bearer {token}":
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "unauthorized"},
+                        headers={"X-Request-ID": request_id},
+                    )
+
+        try:
+            response = await call_next(request)
+        except Exception:
+            dt_ms = (time.perf_counter() - start) * 1000.0
+            logger.exception("request_error", extra={"rid": request_id, "path": request.url.path, "ms": dt_ms})
+            return JSONResponse(
+                status_code=500,
+                content={"detail": "internal_error", "request_id": request_id},
+                headers={"X-Request-ID": request_id},
+            )
+
+        dt_ms = (time.perf_counter() - start) * 1000.0
+        if settings.api_debug_log:
+            logger.info(
+                "request",
+                extra={
+                    "rid": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "query": request.url.query,
+                    "status": response.status_code,
+                    "ms": dt_ms,
+                },
+            )
+        else:
+            logger.info(
+                "request",
+                extra={
+                    "rid": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": response.status_code,
+                    "ms": dt_ms,
+                },
+            )
+        response.headers["X-Request-ID"] = request_id
+        return response
+
     @app.get("/health")
     def health():
         return {"ok": True}
@@ -168,13 +230,14 @@ def create_app() -> FastAPI:
         return {"items": [NoteSummaryOut(**p.__dict__).model_dump() for p in page], "next_cursor": next_cursor}
 
     @app.post("/notes", response_model=NoteDetailOut)
-    def create_note(payload: NoteCreateIn):
+    def create_note(payload: NoteCreateIn, request: Request):
         try:
             content = payload.content_markdown
             if payload.frontmatter is not None:
                 body = parse_frontmatter(content).body
                 content = render_markdown_with_frontmatter(payload.frontmatter, body)
             detail = vault.create_note(payload.path, payload.title, content)
+            logger.info("note_create", extra={"rid": request.state.request_id, "id": detail.id, "path": detail.path})
             indexer.index_note(detail.id)
             return NoteDetailOut(**detail.__dict__)
         except PathError as e:
@@ -258,7 +321,7 @@ def create_app() -> FastAPI:
         return NoteGetOut(note=NoteDetailOut(**detail.__dict__), backlinks=backlinks, related_notes=related_out)
 
     @app.put("/notes/{note_id}", response_model=NoteDetailOut)
-    def update_note(note_id: str, payload: NoteUpdateIn):
+    def update_note(note_id: str, payload: NoteUpdateIn, request: Request):
         try:
             if payload.path:
                 vault.rename_note(note_id, payload.path)
@@ -281,6 +344,7 @@ def create_app() -> FastAPI:
                     vault.write_note(existing.path, content)
 
             detail = vault.read_note_detail(note_id)
+            logger.info("note_update", extra={"rid": request.state.request_id, "id": detail.id, "path": detail.path})
             indexer.index_note(note_id)
             return NoteDetailOut(**detail.__dict__)
         except PathError as e:
@@ -291,9 +355,10 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=409, detail=str(e)) from e
 
     @app.delete("/notes/{note_id}")
-    def delete_note(note_id: str):
+    def delete_note(note_id: str, request: Request):
         try:
-            vault.delete_note(note_id)
+            path = vault.delete_note(note_id)
+            logger.info("note_delete", extra={"rid": request.state.request_id, "id": note_id, "path": path})
             indexer.delete_note(note_id)
             return {"ok": True}
         except FileNotFoundError as e:
@@ -526,11 +591,13 @@ def create_app() -> FastAPI:
         return SummarizeOut(summary_markdown=summary, provider="local:extractive")
 
     @app.post("/admin/reindex-all")
-    def reindex_all():
+    def reindex_all(request: Request):
+        logger.info("reindex_all", extra={"rid": request.state.request_id})
         return indexer.reindex_all()
 
     @app.post("/admin/reindex")
-    def admin_reindex():
+    def admin_reindex(request: Request):
+        logger.info("reindex_all", extra={"rid": request.state.request_id})
         return indexer.reindex_all()
 
     def _ensure_external_enabled() -> None:

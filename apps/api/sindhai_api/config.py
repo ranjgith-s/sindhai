@@ -20,6 +20,9 @@ class Settings:
     perplexity_api_key: str | None
     perplexity_model: str
     ai_external_max_chars: int
+    api_debug_log: bool
+    api_auth_mode: str
+    api_auth_token: str | None
 
 
 def load_settings() -> Settings:
@@ -36,6 +39,9 @@ def load_settings() -> Settings:
     perplexity_api_key = os.environ.get("PERPLEXITY_API_KEY")
     perplexity_model = os.environ.get("PERPLEXITY_MODEL", "sonar")
     ai_external_max_chars = int(os.environ.get("AI_EXTERNAL_MAX_CHARS", "20000"))
+    api_debug_log = os.environ.get("API_DEBUG_LOG", "false").lower() == "true"
+    api_auth_mode = os.environ.get("API_AUTH_MODE", "off").lower()
+    api_auth_token = os.environ.get("API_AUTH_TOKEN")
     return Settings(
         vault_dir=vault_dir,
         neo4j_uri=neo4j_uri,
@@ -50,4 +56,7 @@ def load_settings() -> Settings:
         perplexity_api_key=perplexity_api_key,
         perplexity_model=perplexity_model,
         ai_external_max_chars=ai_external_max_chars,
+        api_debug_log=api_debug_log,
+        api_auth_mode=api_auth_mode,
+        api_auth_token=api_auth_token,
     )

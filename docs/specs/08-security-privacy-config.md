@@ -13,6 +13,10 @@ One of the following must be true for MVP deployments:
 
 Auth choice is TBD; if a concrete choice is made, capture it in an ADR.
 
+MVP implementation options:
+- Recommended: put `web` behind an auth-enabled reverse proxy (Caddy/Traefik/nginx) and do not expose `api` directly.
+- Optional direct-API protection: set `API_AUTH_MODE=bearer` and `API_AUTH_TOKEN=...` to require `Authorization: Bearer <token>` (except `GET /health`).
+
 ## Transport security
 
 - HTTPS is required for remote access (enforced by reverse proxy in typical deployments).
@@ -39,3 +43,6 @@ Auth choice is TBD; if a concrete choice is made, capture it in an ADR.
 - Log request ids and high-level actions (create/update/delete/index), but never log full note content by default.
 - Provide a debug mode that is opt-in and redacts content by default.
 
+MVP implementation:
+- Every response includes `X-Request-ID`.
+- `API_DEBUG_LOG=true` includes querystrings in request logs; request bodies/note content are never logged.

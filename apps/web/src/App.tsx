@@ -40,6 +40,24 @@ function safeDecodeURIComponent(s: string): string {
   }
 }
 
+const _memoryStorage = new Map<string, string>();
+
+function safeStorageGet(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return _memoryStorage.get(key) ?? null;
+  }
+}
+
+function safeStorageSet(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    _memoryStorage.set(key, value);
+  }
+}
+
 export function App() {
   const [notes, setNotes] = useState<NoteSummary[]>([]);
   const [query, setQuery] = useState("");
@@ -194,11 +212,11 @@ export function App() {
 
   useEffect(() => {
     activeIdRef.current = activeId;
-    if (activeId) window.localStorage.setItem("sindhai:lastNoteId", activeId);
+    if (activeId) safeStorageSet("sindhai:lastNoteId", activeId);
   }, [activeId]);
 
   useEffect(() => {
-    const last = window.localStorage.getItem("sindhai:lastNoteId");
+    const last = safeStorageGet("sindhai:lastNoteId");
     const loc = parseLocation();
     setPage(loc.page);
     if (loc.noteId) {
