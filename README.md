@@ -1,5 +1,31 @@
 # Sindhai
 
+## Getting Started with Docker
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Development
+To run the application in development mode with hot-reloading:
+
+```bash
+docker-compose up
+```
+
+The services will be available at:
+- Web: http://localhost:3000
+- API: http://localhost:8000
+- Neo4j Browser: http://localhost:7474
+
+### Production
+To run the production build:
+
+```bash
+docker-compose -f docker-compose.prod.yml up --build
+```
+
+
 Planning repo for an AI-enabled, Obsidian-like knowledge graph web app (Markdown-first “second brain”) with optional external AI imports and local-first privacy defaults.
 
 - Start here: `docs/README.md`

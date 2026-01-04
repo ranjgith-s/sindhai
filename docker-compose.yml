@@ -1,0 +1,65 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./apps/api:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - neo4j
+      - qdrant
+    networks:
+      - sindhai-network
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: build
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - sindhai-network
+
+  neo4j:
+    image: neo4j:5.15
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - sindhai-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - sindhai-network
+
+networks:
+  sindhai-network:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  qdrant_data:

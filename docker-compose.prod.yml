@@ -1,0 +1,54 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - neo4j
+      - qdrant
+    networks:
+      - sindhai-network
+    restart: always
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    networks:
+      - sindhai-network
+    restart: always
+
+  neo4j:
+    image: neo4j:5.15
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - sindhai-network
+    restart: always
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - sindhai-network
+    restart: always
+
+networks:
+  sindhai-network:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  qdrant_data:
