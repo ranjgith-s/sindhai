@@ -46,6 +46,7 @@ services:
       - neo4j_data:/data
     networks:
       - sindhai-network
+    init: true
 
   qdrant:
     image: qdrant/qdrant:v1.7.4
