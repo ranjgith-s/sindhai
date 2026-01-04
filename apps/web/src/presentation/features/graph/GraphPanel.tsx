@@ -1,6 +1,6 @@
 import cytoscape, { Core, ElementDefinition } from "cytoscape";
 import React, { useEffect, useRef } from "react";
-import type { LocalGraph } from "./api";
+import type { LocalGraph } from "../../../domain/models";
 
 export function GraphPanel({
   graph,

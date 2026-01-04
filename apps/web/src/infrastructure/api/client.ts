@@ -1,39 +1,12 @@
-export type NoteSummary = {
-  id: string;
-  title: string;
-  path: string;
-  created_at: string;
-  updated_at: string;
-  tags: string[];
-  aliases: string[];
-};
+import type {
+  NoteSummary,
+  NoteDetail,
+  NoteGet,
+  LocalGraph,
+  ChatMessage,
+} from "../../domain/models";
 
-export type RelatedNote = NoteSummary & { score: number; snippet: string };
-
-export type NoteDetail = {
-  id: string;
-  title: string;
-  path: string;
-  content_markdown: string;
-  frontmatter: Record<string, unknown>;
-  tags: string[];
-  aliases: string[];
-  created_at: string;
-  updated_at: string;
-  content_hash: string;
-  frontmatter_error?: string | null;
-};
-
-export type NoteGet = {
-  note: NoteDetail;
-  backlinks: NoteSummary[];
-  related_notes: RelatedNote[];
-};
-
-export type LocalGraph = {
-  nodes: { id: string; title?: string; tags?: string[] }[];
-  edges: { source: string; target: string; type: string }[];
-};
+export type { NoteSummary, NoteDetail, NoteGet, LocalGraph, ChatMessage };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -109,4 +82,11 @@ export async function aiSuggestLinks(noteId: string, k = 5): Promise<{ items: { 
 export async function aiSuggestTags(noteId: string, k = 10): Promise<{ items: { tag: string; confidence: number }[] }> {
   const params = new URLSearchParams({ noteId, k: String(k) });
   return api(`/ai/suggest-tags?${params.toString()}`);
+}
+
+export async function openaiChat(payload: {
+  messages: ChatMessage[];
+  context?: string;
+}): Promise<{ provider: string; content: string; save_markdown: string }> {
+  return api("/integrations/openai/chat", { method: "POST", body: JSON.stringify(payload) });
 }

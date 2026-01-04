@@ -1,11 +1,11 @@
 import { autocompletion, type Completion, type CompletionContext } from "@codemirror/autocomplete";
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import { EditorView, basicSetup } from "codemirror";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Transaction } from "@codemirror/state";
 import { markdown } from "@codemirror/lang-markdown";
 import { oneDark } from "@codemirror/theme-one-dark";
 
-const theme = EditorView.theme(
+const documentTheme = EditorView.theme(
   {
     "&": {
       height: "100%",
@@ -14,20 +14,15 @@ const theme = EditorView.theme(
     },
     ".cm-scroller": {
       fontFamily:
-        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      fontSize: "13px",
-      lineHeight: "1.6",
+        'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
+      fontSize: "15px",
+      lineHeight: "1.65",
     },
     ".cm-content": {
-      padding: "14px 16px",
+      padding: "18px 18px",
     },
     ".cm-gutters": {
-      backgroundColor: "transparent",
-      borderRight: "1px solid rgba(255, 255, 255, 0.1)",
-      color: "#94a3b8",
-    },
-    ".cm-activeLineGutter": {
-      backgroundColor: "rgba(255,255,255,0.04)",
+      display: "none",
     },
     ".cm-activeLine": {
       backgroundColor: "rgba(255,255,255,0.04)",
@@ -76,6 +71,25 @@ function MarkdownEditorInner({
         view.dispatch({
           changes: { from: sel.from, to: sel.to, insert: text },
           selection: { anchor: sel.from + text.length },
+          annotations: Transaction.userEvent.of("input"),
+        });
+        view.focus();
+      },
+      getSelection() {
+        const view = viewRef.current;
+        if (!view) return { from: 0, to: 0, text: "" };
+        const sel = view.state.selection.main;
+        const text = view.state.doc.sliceString(sel.from, sel.to);
+        return { from: sel.from, to: sel.to, text };
+      },
+      replaceSelection(text: string) {
+        const view = viewRef.current;
+        if (!view) return;
+        const sel = view.state.selection.main;
+        view.dispatch({
+          changes: { from: sel.from, to: sel.to, insert: text },
+          selection: { anchor: sel.from + text.length },
+          annotations: Transaction.userEvent.of("input"),
         });
         view.focus();
       },
@@ -133,7 +147,7 @@ function MarkdownEditorInner({
         markdown(),
         autocompletion({ override: [completionSource] }),
         oneDark,
-        theme,
+        documentTheme,
         EditorView.lineWrapping,
         EditorView.updateListener.of((v) => {
           if (!v.docChanged) return;
@@ -180,6 +194,8 @@ function MarkdownEditorInner({
 export type MarkdownEditorHandle = {
   focus: () => void;
   insertText: (text: string) => void;
+  getSelection: () => { from: number; to: number; text: string };
+  replaceSelection: (text: string) => void;
 };
 
 export const MarkdownEditor = forwardRef(MarkdownEditorInner);

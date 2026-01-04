@@ -62,6 +62,14 @@ MVP API:
 - `POST /integrations/openai/chat` returns `{ provider, content, save_markdown }`.
 - Configuration via `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`.
 
+#### AI writing UX contract
+
+The web UI may use `POST /integrations/openai/chat` to power writing assistance, but must:
+- Default to sending only explicit user-selected text/snippets.
+- Clearly label the action as “external” when it leaves the system.
+- Require explicit confirmation for “whole note” operations.
+- Never attempt to store or display provider API keys in the browser.
+
 ### Perplexity (grounded)
 
 Requirements:
