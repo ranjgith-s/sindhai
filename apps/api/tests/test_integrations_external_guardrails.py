@@ -1,6 +1,16 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
+
+from sindhai_api.dependencies import get_settings
+
+
+@pytest.fixture(autouse=True)
+def clear_settings_cache():
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def test_external_integrations_blocked_when_disabled(tmp_path, monkeypatch) -> None:
@@ -67,8 +77,9 @@ def test_openai_chat_returns_saveable_markdown(tmp_path, monkeypatch) -> None:
 
         return ChatResponse(provider="external:openai:test-model", content="Hello", raw={"ok": True})
 
-    monkeypatch.setattr(main, "openai_chat_completion", fake_chat)
-    monkeypatch.setattr(main, "rfc3339_now", lambda: "2025-01-01T00:00:00Z")
+    # Updated patch target
+    monkeypatch.setattr("sindhai_api.interface.api.routes.openai_chat_completion", fake_chat)
+    monkeypatch.setattr("sindhai_api.interface.api.routes.rfc3339_now", lambda: "2025-01-01T00:00:00Z")
 
     client = TestClient(main.create_app())
     r = client.post("/integrations/openai/chat", json={"messages": [{"role": "user", "content": "hi"}]})
@@ -79,4 +90,3 @@ def test_openai_chat_returns_saveable_markdown(tmp_path, monkeypatch) -> None:
     assert "generated_at" in data["save_markdown"]
     assert "## Prompt" in data["save_markdown"]
     assert "## Response" in data["save_markdown"]
-
