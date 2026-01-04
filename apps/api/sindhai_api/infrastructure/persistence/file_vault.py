@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from .parsing import ParsedNote, parse_note
-from .util import (
+from sindhai_api.domain.parsing import ParsedNote, parse_note
+from sindhai_api.domain.entities import NoteDetail, NoteSummary
+from sindhai_api.domain.exceptions import PathError
+from sindhai_api.util import (
     atomic_write_json,
     atomic_write_text,
     normalize_newlines_for_hash,
@@ -14,10 +15,6 @@ from .util import (
     safe_filename_stem,
     sha256_hex,
 )
-
-
-class PathError(ValueError):
-    pass
 
 
 def normalize_note_path(path: str) -> str:
@@ -60,32 +57,6 @@ def extract_aliases(frontmatter: dict) -> list[str]:
     else:
         return []
     return [v.strip() for v in values if v.strip()]
-
-
-@dataclass(frozen=True)
-class NoteSummary:
-    id: str
-    title: str
-    path: str
-    created_at: str
-    updated_at: str
-    tags: list[str]
-    aliases: list[str]
-
-
-@dataclass(frozen=True)
-class NoteDetail:
-    id: str
-    title: str
-    path: str
-    content_markdown: str
-    frontmatter: dict
-    tags: list[str]
-    created_at: str
-    updated_at: str
-    content_hash: str
-    frontmatter_error: str | None
-    aliases: list[str]
 
 
 class NoteIdIndex:
@@ -181,7 +152,7 @@ class NoteMetaIndex:
             self._write(data)
 
 
-class Vault:
+class FileVaultRepository:
     def __init__(self, vault_dir: Path) -> None:
         self.vault_dir = vault_dir
         self.ids = NoteIdIndex(vault_dir)

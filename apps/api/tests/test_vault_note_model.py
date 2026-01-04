@@ -1,6 +1,6 @@
 import json
 
-from sindhai_api.vault import Vault
+from sindhai_api.infrastructure.persistence.file_vault import FileVaultRepository as Vault
 
 
 def test_created_at_persists_across_update_rename_delete(tmp_path) -> None:

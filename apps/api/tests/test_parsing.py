@@ -1,4 +1,4 @@
-from sindhai_api.parsing import parse_frontmatter, parse_note, parse_tags_and_links
+from sindhai_api.domain.parsing import parse_frontmatter, parse_note, parse_tags_and_links
 
 
 def test_frontmatter_parses_at_byte_zero() -> None:

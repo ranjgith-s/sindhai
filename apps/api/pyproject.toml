@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "sindhai-api"
+version = "0.1.0"
+description = "Sindhai Backend API Service"
+authors = ["Sindhai Team <team@sindhai.com>"]
+readme = "README.md"
+packages = [{include = "sindhai_api"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "0.115.6"
+uvicorn = {extras = ["standard"], version = "0.34.0"}
+neo4j = "5.26.0"
+qdrant-client = "1.12.1"
+PyYAML = "6.0.2"
+httpx = "0.28.1"
+pydantic-settings = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "8.3.4"
+ruff = "^0.1.11"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+ignore_missing_imports = true

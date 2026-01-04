@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sindhai_api.indexing.indexer import Indexer
-from sindhai_api.vault import Vault
+from sindhai_api.infrastructure.persistence.file_vault import FileVaultRepository as Vault
 
 
 @dataclass

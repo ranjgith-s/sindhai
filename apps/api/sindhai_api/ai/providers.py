@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from ..embedding import embed_text
+from sindhai_api.infrastructure.ai.embedding import embed_text
 
 
 Role = Literal["system", "user", "assistant"]

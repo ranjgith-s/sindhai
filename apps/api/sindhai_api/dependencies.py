@@ -1,10 +1,10 @@
 from functools import lru_cache
 
-from sindhai_api.config import load_settings
+from sindhai_api.infrastructure.config import load_settings
 from sindhai_api.indexing.graph import Neo4jGraph
 from sindhai_api.indexing.indexer import Indexer
 from sindhai_api.indexing.vector import QdrantIndex
-from sindhai_api.vault import Vault
+from sindhai_api.infrastructure.persistence.file_vault import FileVaultRepository as Vault
 
 @lru_cache()
 def get_settings():

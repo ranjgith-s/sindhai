@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Distance, PointIdsList, PointStruct, VectorParams
 
-from ..embedding import embed_text
+from sindhai_api.infrastructure.ai.embedding import embed_text
 
 
 @dataclass(frozen=True)

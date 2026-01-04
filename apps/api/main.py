@@ -7,7 +7,7 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from sindhai_api.config import load_settings
+from sindhai_api.infrastructure.config import load_settings
 from sindhai_api.interface.api.routes import router as api_router
 
 def create_app() -> FastAPI:

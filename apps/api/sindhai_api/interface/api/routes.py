@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from sindhai_api.ai.openai_compat import ExternalAIError, openai_chat_completion, perplexity_ask
 from sindhai_api.ai.providers import Message
-from sindhai_api.config import Settings
+from sindhai_api.infrastructure.config import Settings
 from sindhai_api.dependencies import get_graph, get_indexer, get_settings, get_vault, get_vectors
 from sindhai_api.domain.schemas import (
     NoteCreateIn,
@@ -31,9 +31,10 @@ from sindhai_api.domain.schemas import (
 from sindhai_api.indexing.graph import Neo4jGraph
 from sindhai_api.indexing.indexer import Indexer, build_catalog, resolve_wikilinks
 from sindhai_api.indexing.vector import QdrantIndex, VectorNote
-from sindhai_api.parsing import parse_frontmatter, render_markdown_with_frontmatter
+from sindhai_api.domain.parsing import parse_frontmatter, render_markdown_with_frontmatter
 from sindhai_api.util import normalize_newlines_for_hash, rfc3339_now, sha256_hex
-from sindhai_api.vault import PathError, Vault
+from sindhai_api.domain.exceptions import PathError
+from sindhai_api.infrastructure.persistence.file_vault import FileVaultRepository as Vault
 
 router = APIRouter()
 logger = logging.getLogger("sindhai.api")

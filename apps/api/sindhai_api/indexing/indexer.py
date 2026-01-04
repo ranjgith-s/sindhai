@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..parsing import normalize_link_target, parse_note
-from ..vault import Vault
+from sindhai_api.domain.parsing import normalize_link_target, parse_note
+from sindhai_api.infrastructure.persistence.file_vault import FileVaultRepository as Vault
 from .graph import GraphNote, Neo4jGraph
 from .vector import QdrantIndex, VectorNote
 

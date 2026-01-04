@@ -1,6 +1,7 @@
 import pytest
 
-from sindhai_api.vault import PathError, normalize_note_path
+from sindhai_api.domain.exceptions import PathError
+from sindhai_api.infrastructure.persistence.file_vault import normalize_note_path
 
 
 @pytest.mark.parametrize(
