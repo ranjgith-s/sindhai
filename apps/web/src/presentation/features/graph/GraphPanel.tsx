@@ -68,7 +68,25 @@ export function GraphPanel({
       cyRef.current?.destroy();
       cyRef.current = null;
     };
+  }, []); // Remove onOpenNote dependency
+
+  const onOpenNoteRef = useRef(onOpenNote);
+  useEffect(() => {
+    onOpenNoteRef.current = onOpenNote;
   }, [onOpenNote]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    // Update the tap handler to use the ref
+    cy.off("tap", "node");
+    cy.on("tap", "node", (evt) => {
+      const id = evt.target.id();
+      if (id) onOpenNoteRef.current(id);
+    });
+  }, [onOpenNote]); // Re-bind handler if onOpenNote changes (optional, or just bind once using ref inside)
+
 
   useEffect(() => {
     const cy = cyRef.current;
