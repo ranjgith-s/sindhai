@@ -5,6 +5,7 @@ import time
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sindhai_api.infrastructure.config import load_settings
@@ -12,6 +13,15 @@ from sindhai_api.interface.api.routes import router as api_router
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Sindhai API", version="0.0.0")
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
     settings = load_settings()
     logger = logging.getLogger("sindhai.api")
 

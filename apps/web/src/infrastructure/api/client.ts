@@ -4,12 +4,19 @@ import type {
   NoteGet,
   LocalGraph,
   ChatMessage,
+  SearchItem,
+  PerplexityAskIn,
+  PerplexityAskOut,
 } from "../../domain/models";
 
 export type { NoteSummary, NoteDetail, NoteGet, LocalGraph, ChatMessage };
 
+const BASE_URL = import.meta.env.VITE_API_URL || "";
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  // path should start with /
+  const url = `${BASE_URL}${path}`;
+  const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
@@ -23,7 +30,6 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export async function listNotes(q?: string): Promise<NoteSummary[]> {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
-  // Back-compat: keep `q` optional; callers can pass `tag` using overload below.
   const data = await api<{ items: NoteSummary[] }>(`/notes?${params.toString()}`);
   return data.items;
 }
@@ -66,6 +72,16 @@ export async function getLocalGraph(noteId: string): Promise<LocalGraph> {
   return api<LocalGraph>(`/graph/local?${params.toString()}`);
 }
 
+export async function search(
+  query: string,
+  mode: "hybrid" | "keyword" | "semantic" = "hybrid",
+  limit = 20
+): Promise<SearchItem[]> {
+  const params = new URLSearchParams({ query, mode, limit: String(limit) });
+  const data = await api<{ items: SearchItem[] }>(`/search?${params.toString()}`);
+  return data.items;
+}
+
 export async function aiSummarize(payload: {
   noteId: string;
   mode?: "local" | "external";
@@ -89,4 +105,8 @@ export async function openaiChat(payload: {
   context?: string;
 }): Promise<{ provider: string; content: string; save_markdown: string }> {
   return api("/integrations/openai/chat", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function perplexityAsk(payload: PerplexityAskIn): Promise<PerplexityAskOut> {
+  return api("/integrations/perplexity/ask", { method: "POST", body: JSON.stringify(payload) });
 }

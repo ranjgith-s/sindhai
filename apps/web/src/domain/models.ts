@@ -39,3 +39,23 @@ export type ChatMessage = {
     role: "system" | "user" | "assistant";
     content: string;
 };
+
+export type SearchItem = {
+    id: string;
+    title: string;
+    path: string;
+    snippet?: string;
+    score?: number;
+};
+
+export type PerplexityAskIn = {
+    query: string;
+    context?: string;
+};
+
+export type PerplexityAskOut = {
+    provider: string;
+    answer_markdown: string;
+    citations?: string[];
+    save_markdown: string;
+};
