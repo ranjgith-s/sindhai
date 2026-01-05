@@ -20,6 +20,7 @@ import { NoteList } from "../features/sidebar/NoteList";
 import { MainLayout } from "../layouts/MainLayout";
 import { extractLinks, renderMarkdown } from "../../infrastructure/markdown";
 import { cn } from "../utils";
+import { useToast } from "../components/ui/Toast";
 function normalizeWikiTarget(s: string): string {
   return s.trim().replace(/\s+/g, " ");
 }
@@ -74,7 +75,7 @@ export function Home() {
   const [loadingNote, setLoadingNote] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  // const [toast, setToast] = useState<string | null>(null); // Removed local toast
   const [page, setPage] = useState<"note" | "graph" | "settings">("note");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(() => safeStorageGet("sindhai:showAdvanced") === "true");
@@ -100,6 +101,8 @@ export function Home() {
   const draftsRef = useRef(new Map<string, string>());
   const editorHandleRef = useRef<MarkdownEditorHandle | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { toast } = useToast();
 
   const notesById = useMemo(() => new Map(notes.map((n) => [n.id, n])), [notes]);
 
@@ -336,11 +339,13 @@ export function Home() {
       .finally(() => setAiSuggestLoading(false));
   }, [activeId]);
 
+  /*
   function showToast(message: string) {
     setToast(message);
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(null), 2500);
   }
+  */
 
   async function runSummarize() {
     if (!activeId) return;
@@ -350,7 +355,7 @@ export function Home() {
       setAiSummary({ provider: res.provider, markdown: res.summary_markdown });
     } catch (e) {
       console.error(e);
-      showToast("Summarize failed.");
+      toast("Summarize failed.", { type: "error" });
       setAiSummary(null);
     } finally {
       setAiSummaryLoading(false);
@@ -379,7 +384,7 @@ export function Home() {
     const selection = editorHandle?.getSelection().text ?? "";
     const context = (aiWriteScope === "selection" ? selection : editor).trim();
     if (!context) {
-      showToast(aiWriteScope === "selection" ? "Select text to use AI writing." : "Note is empty.");
+      toast(aiWriteScope === "selection" ? "Select text to use AI writing." : "Note is empty.", { type: "info" });
       return;
     }
 
@@ -394,6 +399,8 @@ export function Home() {
               ? "fix"
               : "continue";
       const title = active?.note.title ? `"${active.note.title}"` : "this note";
+      /*
+      // Removing confirmation for seamless UX as per improved design.
       if (
         !window.confirm(
           `Send ${title} (${context.length} chars) to OpenAI to ${actionLabel}? This content will leave the system.`,
@@ -401,6 +408,7 @@ export function Home() {
       ) {
         return;
       }
+      */
     }
 
     setAiWriteLoading(true);
@@ -411,7 +419,7 @@ export function Home() {
       });
       const out = (res.content || "").trim();
       if (!out) {
-        showToast("AI returned empty output.");
+        toast("AI returned empty output.", { type: "info" });
         return;
       }
 
@@ -423,26 +431,26 @@ export function Home() {
           setEditor(next);
           scheduleSave(next);
         }
-        showToast(`Inserted (${res.provider}).`);
+        toast(`Inserted without blocking (${res.provider}).`, { type: "success" });
         return;
       }
 
       if (aiWriteScope === "selection") {
         if (!editorHandle) {
-          showToast("Editor is not ready.");
+          toast("Editor is not ready.", { type: "error" });
           return;
         }
         editorHandle.replaceSelection(out);
-        showToast(`Replaced selection (${res.provider}).`);
+        toast(`Replaced selection (${res.provider}).`, { type: "success" });
         return;
       }
 
       setEditor(out);
       scheduleSave(out);
-      showToast(`Rewrote note (${res.provider}).`);
+      toast(`Rewrote note (${res.provider}).`, { type: "success" });
     } catch (e) {
       console.error(e);
-      showToast(aiWriteErrorMessage(e));
+      toast(aiWriteErrorMessage(e), { type: "error" });
     } finally {
       setAiWriteLoading(false);
     }
@@ -476,7 +484,7 @@ export function Home() {
     const mergedTags = [...normalizeFrontmatterTags(frontmatter), tag];
     const nextFrontmatter = { ...frontmatter, tags: mergedTags };
     await updateNote(activeId, { content_markdown: editor, frontmatter: nextFrontmatter });
-    showToast(`Added tag #${tag}`);
+    toast(`Added tag #${tag}`, { type: "success" });
     await refreshListNow();
     const [note, g] = await Promise.all([getNote(activeId), getLocalGraph(activeId)]);
     setActive(note);
@@ -573,27 +581,63 @@ export function Home() {
   }
 
   async function onNewNote() {
-    const title = window.prompt("New note title")?.trim();
-    if (!title) return;
-    const created = await createNote({ title });
+    // Seamless creation: Create "Untitled" and let user edit title.
+    const created = await createNote({ title: "Untitled" });
     await refreshListNow();
     draftsRef.current.set(created.id, created.content_markdown);
-    void navigateToNote(created.id);
+    await navigateToNote(created.id);
+    setEditingTitle(true); // Automatically focus title
+    toast("New note created.", { type: "success" });
   }
 
   async function onDeleteNote() {
     if (!activeId) return;
-    const title = notesById.get(activeId)?.title ?? "this note";
-    if (!window.confirm(`Delete ${title}?`)) return;
+    // Fetch full note content before deleting to enable Undo
+    let contentToRestore = "";
+    try {
+      const fullNote = await getNote(activeId);
+      contentToRestore = fullNote.note.content_markdown;
+    } catch {
+      // If fetch fails, we might rely on the editor draft if it matches activeId
+      contentToRestore = draftsRef.current.get(activeId) || "";
+    }
+
+    const noteToDelete = notesById.get(activeId);
+    if (!noteToDelete) return;
+
+    // Seamless deletion with undo
     await deleteNote(activeId);
+
+    // Optimistic UI update or refresh
     const items = await listNotesFiltered({ q: queryRef.current, tag: tagRef.current ?? undefined });
     setNotes(items);
+
     const next = items[0]?.id ?? null;
     if (next) void navigateToNote(next, { replace: true });
     else {
       setActiveId(null);
       navigate("/", { replace: true });
     }
+
+    toast(`Note "${noteToDelete.title || "Untitled"}" deleted.`, {
+      type: "info",
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          try {
+            const created = await createNote({ title: noteToDelete.title || "Untitled", path: noteToDelete.path });
+            await updateNote(created.id, { content_markdown: contentToRestore });
+            await refreshListNow();
+            void navigateToNote(created.id);
+            toast("Note restored.", { type: "success" });
+          } catch (e) {
+            console.error(e);
+            toast("Failed to restore note.", { type: "error" });
+          }
+        }
+      }
+    });
   }
 
   function resolveWikiLink(target: string): string | null {
@@ -614,11 +658,12 @@ export function Home() {
       void navigateToNote(resolved);
       return;
     }
-    if (!window.confirm(`Create note "${target}"?`)) return;
+    // Seamless creation
     const created = await createNote({ title: target });
     await refreshListNow();
     draftsRef.current.set(created.id, created.content_markdown);
     void navigateToNote(created.id);
+    toast(`Created note "${target}"`, { type: "success" });
   }
 
   function resolveInternalMarkdownHref(rawHref: string): string | null {
@@ -654,12 +699,13 @@ export function Home() {
     const base = href.toLowerCase().endsWith(".markdown") ? href.replace(/\.markdown$/i, ".md") : href;
     const titleGuess = stem(base);
     const createPath = base.toLowerCase().endsWith(".md") ? base : base.includes("/") ? `${base}.md` : undefined;
-    const promptLabel = createPath ? `"${createPath}"` : `"${titleGuess}"`;
-    if (!window.confirm(`Create note ${promptLabel}?`)) return;
+
+    // Seamless creation
     const created = await createNote({ title: titleGuess, path: createPath });
     await refreshListNow();
     draftsRef.current.set(created.id, created.content_markdown);
     void navigateToNote(created.id);
+    toast(`Created note "${titleGuess}"`, { type: "success" });
   }
 
   async function switchToNote(nextId: string) {
@@ -739,13 +785,13 @@ export function Home() {
     const linkType = a.getAttribute("data-link-type");
     if (linkType === "unsafe") {
       e.preventDefault();
-      showToast("Blocked unsafe link.");
+      toast("Blocked unsafe link.", { type: "error" });
       return;
     }
     if (internalHref) {
       e.preventDefault();
       if (linkType === "internal-file") {
-        showToast(`File link: ${internalHref}`);
+        toast(`File link: ${internalHref}`, { type: "info" });
         return;
       }
       void openOrCreateInternalHref(internalHref);
@@ -939,11 +985,7 @@ export function Home() {
           </div>
         )
       )}
-      {toast && (
-        <div className="absolute bottom-4 right-4 z-50 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-lg animate-in slide-in-from-bottom-2 fade-in">
-          {toast}
-        </div>
-      )}
+      {/* local toast removed */}
     </MainLayout>
   );
 }

@@ -1,6 +1,11 @@
 import React from "react";
 import { Home } from "./presentation/pages/Home";
+import { ToastProvider } from "./presentation/components/ui/Toast";
 
 export function App() {
-  return <Home />;
+  return (
+    <ToastProvider>
+      <Home />
+    </ToastProvider>
+  );
 }
