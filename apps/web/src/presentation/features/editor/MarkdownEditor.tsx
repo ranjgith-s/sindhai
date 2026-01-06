@@ -188,7 +188,7 @@ function MarkdownEditorInner({
     lastValueRef.current = value;
   }, [value]);
 
-  return <div className="h-full" ref={hostRef} />;
+  return <div className="h-full" ref={hostRef} role="textbox" aria-label="Markdown editor" aria-multiline="true" />;
 }
 
 export type MarkdownEditorHandle = {

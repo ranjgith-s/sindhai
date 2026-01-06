@@ -65,11 +65,13 @@ export function Sidebar({
                         placeholder="Search notes..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
+                        aria-label="Search notes"
                     />
                     {searchQuery && (
                         <button
                             className="absolute right-2 top-2.5 rounded-sm opacity-50 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                             onClick={() => onSearchChange("")}
+                            aria-label="Clear search"
                         >
                             <X className="h-4 w-4" />
                             <span className="sr-only">Clear search</span>

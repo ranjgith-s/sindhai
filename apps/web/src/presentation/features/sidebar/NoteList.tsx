@@ -25,7 +25,7 @@ export function NoteList({
     }
 
     return (
-        <div className={cn("flex flex-col gap-1 p-2", className)}>
+        <div className={cn("flex flex-col gap-1 p-2", className)} role="list" aria-label="Note list">
             {notes.map((note) => (
                 <button
                     key={note.id}
@@ -34,6 +34,9 @@ export function NoteList({
                         "flex flex-col items-start gap-1 rounded-lg p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground",
                         activeNoteId === note.id ? "bg-accent text-accent-foreground" : "text-muted-foreground"
                     )}
+                    role="listitem"
+                    aria-label={`Note: ${note.title || "Untitled"}`}
+                    aria-current={activeNoteId === note.id ? "page" : undefined}
                 >
                     <div className="font-semibold leading-none tracking-tight">
                         {note.title || "Untitled"}

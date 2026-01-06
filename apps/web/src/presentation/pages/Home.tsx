@@ -18,6 +18,7 @@ import { MarkdownEditor } from "../features/editor/MarkdownEditor";
 import { Sidebar } from "../features/sidebar/Sidebar";
 import { NoteList } from "../features/sidebar/NoteList";
 import { MainLayout } from "../layouts/MainLayout";
+import { Settings } from "./Settings";
 import { extractLinks, renderMarkdown } from "../../infrastructure/markdown";
 import { cn } from "../utils";
 import { useToast } from "../components/ui/Toast";
@@ -859,52 +860,11 @@ export function Home() {
           <GraphPanel graph={graph} onOpenNote={(id) => void navigateToNote(id)} heightClassName="h-full" />
         </div>
       ) : page === "settings" ? (
-        <div className="p-8 text-foreground max-w-3xl mx-auto">
-          <h1 className="mb-6 text-3xl font-bold tracking-tight">Settings</h1>
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={showAdvanced}
-                onChange={(e) => setShowAdvanced(e.target.checked)}
-                className="h-4 w-4 rounded border-input bg-background text-primary focus:ring-primary"
-              />
-              <span>Show advanced AI options & Metadata</span>
-            </div>
-
-            <div className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm">
-              <h3 className="font-semibold mb-2">Display</h3>
-              <p className="text-sm text-muted-foreground">Customize your viewing experience.</p>
-            </div>
-
-            <div className="rounded-xl border bg-card p-4 text-card-foreground shadow-sm">
-              <h3 className="font-semibold mb-2">Manual Import</h3>
-              <ManualImport
-                onSave={async (title, body, urls) => {
-                  const created = await createNote({ title });
-                  const now = new Date().toISOString();
-                  const refs = urls.length ? `\n\n## References\n\n${urls.map((u) => `- ${u}`).join("\n")}\n` : "";
-                  await updateNote(created.id, {
-                    content_markdown: `${body.trim()}\n${refs}`.trim() + "\n",
-                    frontmatter: { tags: ["imported"], imported_at: now, import_source: "manual" },
-                  });
-                  await refreshListNow();
-                  draftsRef.current.set(created.id, body);
-                  void navigateToNote(created.id);
-                }}
-              />
-            </div>
-
-            <div className="pt-4">
-              <button
-                onClick={() => navigate("/")}
-                className="rounded-xl border border-input bg-background px-4 py-2 hover:bg-accent hover:text-accent-foreground"
-              >
-                Back to Notes
-              </button>
-            </div>
-          </div>
-        </div>
+        <Settings
+          showAdvanced={showAdvanced}
+          onToggleAdvanced={setShowAdvanced}
+          totalNotes={notes.length}
+        />
       ) : (
         activeId ? (
           <div className="relative flex h-full flex-col bg-background">
