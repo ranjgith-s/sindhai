@@ -35,6 +35,8 @@ Persist these directories/volumes:
 
 ## Environment configuration (suggested)
 
+Compose reads variables from `.env` (with defaults in the compose files) to populate service env vars.
+
 - `VAULT_DIR=/data/vault`
 - Graph:
   - Neo4j: `NEO4J_URI=bolt://neo4j:7687`, `NEO4J_AUTH=neo4j/<password>`
@@ -53,4 +55,3 @@ Persist these directories/volumes:
 2. **Containerized dev**: run everything in compose (repeatable).
 3. **Single-host prod**: compose + reverse proxy + backups (vault bind mount + volumes).
 4. **Scale later**: separate services only when bottlenecks appear.
-
