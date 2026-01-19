@@ -22,6 +22,7 @@ import { Settings } from "./Settings";
 import { extractLinks, renderMarkdown } from "../../infrastructure/markdown";
 import { cn } from "../utils";
 import { useToast } from "../components/ui/Toast";
+import { DictationButton } from "../components/ui/DictationButton";
 function normalizeWikiTarget(s: string): string {
   return s.trim().replace(/\s+/g, " ");
 }
@@ -641,6 +642,52 @@ export function Home() {
     });
   }
 
+  async function handleDictateNewNote(text: string) {
+    if (!text.trim()) {
+      toast("No speech detected. Please try again.", { type: "info" });
+      return;
+    }
+
+    try {
+      // Create a new note with "Untitled" and set content to dictated text
+      const created = await createNote({ title: "Untitled" });
+      await updateNote(created.id, { content_markdown: text.trim() });
+      await refreshListNow();
+      draftsRef.current.set(created.id, text.trim());
+      await navigateToNote(created.id);
+      setEditingTitle(true); // Auto-focus title for editing
+      toast("Note created from dictation.", { type: "success" });
+    } catch (e) {
+      console.error(e);
+      toast("Failed to create note from dictation.", { type: "error" });
+    }
+  }
+
+  function handleDictateToEditor(text: string) {
+    if (!text.trim()) {
+      toast("No speech detected. Please try again.", { type: "info" });
+      return;
+    }
+
+    if (!activeId) {
+      toast("No note is open.", { type: "error" });
+      return;
+    }
+
+    const editorHandle = editorHandleRef.current;
+    if (editorHandle) {
+      const prefix = editor && !editor.endsWith("\n") ? "\n\n" : "";
+      editorHandle.insertText(prefix + text.trim());
+      toast("Dictation inserted.", { type: "success" });
+    } else {
+      const prefix = editor && !editor.endsWith("\n") ? "\n\n" : "";
+      const next = editor + prefix + text.trim();
+      setEditor(next);
+      scheduleSave(next);
+      toast("Dictation inserted.", { type: "success" });
+    }
+  }
+
   function resolveWikiLink(target: string): string | null {
     const t = normalizeWikiTarget(target);
     for (const n of notes) {
@@ -802,6 +849,7 @@ export function Home() {
   const sidebarContent = (
     <Sidebar
       onNewNote={() => void onNewNote()}
+      onDictateNewNote={(text) => void handleDictateNewNote(text)}
       onDeleteNote={() => void onDeleteNote()}
       activeNoteId={activeId}
       searchQuery={query}
@@ -929,10 +977,17 @@ export function Home() {
               )}
             </div>
 
-            {/* Floating AI / Tools */}
-            <div className="absolute bottom-6 right-6 flex gap-2">
-              {/* Could add a floating action button here later */}
-            </div>
+            {/* Floating Dictation Button */}
+            {!previewOpen && (
+              <div className="absolute bottom-6 right-6 flex gap-2">
+                <DictationButton
+                  variant="default"
+                  onTranscript={(text) => handleDictateToEditor(text)}
+                  onError={(error) => toast(error.message, { type: "error" })}
+                  className="shadow-lg"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground bg-muted/5">

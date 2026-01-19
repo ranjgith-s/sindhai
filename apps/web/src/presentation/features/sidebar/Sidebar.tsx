@@ -2,10 +2,13 @@ import React from "react";
 import { Plus, Trash2, Search, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { DictationButton } from "../../components/ui/DictationButton";
+import { useToast } from "../../components/ui/Toast";
 import { cn } from "../../utils";
 
 interface SidebarProps {
     onNewNote: () => void;
+    onDictateNewNote?: (text: string) => void;
     onDeleteNote: () => void;
     activeNoteId: string | null;
     searchQuery: string;
@@ -19,6 +22,7 @@ interface SidebarProps {
 
 export function Sidebar({
     onNewNote,
+    onDictateNewNote,
     onDeleteNote,
     activeNoteId,
     searchQuery,
@@ -29,6 +33,8 @@ export function Sidebar({
     className,
     children,
 }: SidebarProps) {
+    const { toast } = useToast();
+
     return (
         <aside
             className={cn(
@@ -46,6 +52,14 @@ export function Sidebar({
                     <Plus className="mr-2 h-4 w-4" />
                     New
                 </Button>
+                {onDictateNewNote && (
+                    <DictationButton
+                        variant="icon"
+                        onTranscript={(text) => onDictateNewNote(text)}
+                        onError={(error) => toast(error.message, { type: "error" })}
+                        aria-label="Create note via dictation"
+                    />
+                )}
                 <Button
                     variant="ghost"
                     size="icon"
